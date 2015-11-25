@@ -1,7 +1,9 @@
 package soap
 
 import (
+	"bytes"
 	"encoding/xml"
+	"io"
 	"time"
 )
 
@@ -11,90 +13,93 @@ const (
 	V12 string = "1.2"
 )
 
-// Request models a SOAP request.
+// RequestBuilder is an interface who implement a SOAP request.
+type RequestBuilder interface {
+	SetAction(act string) RequestBuilder
+	AddSOAPHeaders(hdrs ...interface{}) RequestBuilder
+	AddPayload(items ...interface{}) RequestBuilder
+	Build() (*Request, error)
+}
+
+// Request represents a SOAP request.
 type Request struct {
-	Action      string
-	HTTPHeaders map[string]string
-	Header      interface{}
-	Payload     interface{}
+	Env       Envelope
+	createdAt time.Time
+}
+
+// CreatedAt returns the time the request was created at.
+func (req *Request) CreatedAt() time.Time {
+	return req.createdAt
+}
+
+// Response models a received SOAP envelope and a pointer to Request structure.
+type Response struct {
+	Env        Envelope
+	Request    *Request
+	receivedAt time.Time
 }
 
 // Client represents a SOAP client that will be used
-// to send requests and process responses.
+// to prepare requests and process responses.
 type Client struct {
-	XMLClient
-
-	// The SOAP version. Should be one of the constants defined to represent the SOAP versions.
+	// The SOAP version.
+	// It should be one of the constants defined to represent the SOAP versions.
 	// If an invalid value is passed, version 1.1 (V11) will be used.
-	Version string
+	version string
+	req     *Request
 }
 
-// Do sends a SOAP request.
-func (c *Client) Do(req Request) (Envelope, error) {
-	bdyContent, err := xml.Marshal(req.Payload)
+// NewRequestBuilder creates a new request builder.
+func (c *Client) NewRequestBuilder() RequestBuilder {
+	return &reqBuilder{
+		version: c.version,
+	}
+}
+
+// EncodeEnvelope function builds a request SOAP envelope and return data ([]bytes) to be sent.
+func (c *Client) EncodeEnvelope(req *Request) ([]byte, error) {
+	//To keep request on SOAP client.
+	c.req = req
+
+	e, err := xml.Marshal(req.Env)
 	if err != nil {
 		return nil, err
 	}
 
-	var reqEnv Envelope = &Envelope11{BodyElem: Body11{PayloadElem: bdyContent}}
-	if c.Version == V12 {
-		reqEnv = &Envelope12{BodyElem: Body12{PayloadElem: bdyContent}}
-	}
+	return e, nil
+}
 
-	if req.Header != nil {
-		hdrContent, err := xml.Marshal(req.Header)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(hdrContent) > 0 {
-			reqEnv.setHeader(&Header{Content: hdrContent})
-		}
-	}
-
-	if req.HTTPHeaders == nil {
-		req.HTTPHeaders = make(map[string]string)
-	}
-
-	if c.Version == V12 {
-		req.HTTPHeaders["Content-Type"] = "application/soap+xml; charset=utf-8; action=\"" + req.Action + "\""
-	} else {
-		req.HTTPHeaders["Content-Type"] = "text/xml; charset=utf-8"
-		req.HTTPHeaders["SOAPAction"] = req.Action
-	}
-
-	resp, err := c.XMLClient.Do(req.HTTPHeaders, reqEnv)
+// DecodeEnvelope function returns an Response structure who contains a received SOAP envelope & a pointer to Request.
+func (c *Client) DecodeEnvelope(resp io.Reader) (*Response, error) {
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(resp)
 	if err != nil {
 		return nil, err
 	}
 
 	var respEnv Envelope = &Envelope11{}
-	if c.Version == V12 {
+	if c.version == V12 {
 		respEnv = &Envelope12{}
 	}
 
-	if err := xml.Unmarshal(resp, respEnv); err != nil {
+	if err := xml.Unmarshal(buf.Bytes(), respEnv); err != nil {
 		return nil, err
 	}
 
-	return respEnv, nil
+	r := Response{
+		Env:        respEnv,
+		Request:    c.req,
+		receivedAt: time.Now(),
+	}
+
+	return &r, nil
 }
 
-// NewClient creates a new SOAP client and set its initial state.
-// The version parameter represents the SOAP version.
-// The url parameter represents the SOAP Service URL.
-// The timeout parameter specifies a time limit for requests made by this Client.
-// A Timeout of zero means no timeout.
-func NewClient(version string, url string, timeout time.Duration) (*Client, error) {
-	c := Client{Version: version}
-	c.URL = url
-	c.Timeout = timeout
+// NewClient intialize a SOAP client
+func NewClient(version string) (*Client, error) {
+	c := &Client{
+		version: version,
+	}
 
-	return &c, nil
-}
-
-// SetTLSConfig should be called to set/update the TLS Configuration
-// to be shared by all the HTTP Clients.
-func SetTLSConfig(certProvFile, certFile, keyFile string) {
-	httpPool.SetTLSConfig(certProvFile, certFile, keyFile)
+	return c, nil
 }
