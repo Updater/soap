@@ -1,6 +1,12 @@
 package soap
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"errors"
+)
+
+// ErrInvalidVersion represents an error produced when options provided are not 1.1 or 1.2
+var ErrInvalidVersion = errors.New("Version must be either 1.1 or 1.2")
 
 // Header models the header section of the SOAP Envelope.
 type Header struct {

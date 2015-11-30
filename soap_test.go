@@ -1,10 +1,15 @@
 package soap_test
 
 import (
+	"bytes"
+	"encoding/xml"
+	"fmt"
+	"net/http"
 	"reflect"
 	"testing"
 
 	"github.com/Bridgevine/t-soap"
+	"github.com/Bridgevine/t-soap/ws"
 )
 
 type useCase struct {
@@ -27,7 +32,7 @@ func TestEncodeEnvelope(t *testing.T) {
 			reqPayload:      []interface{}{sample001},
 			expectedHeaders: soapHeaders,
 			expectedPayload: []interface{}{&sample002},
-			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(soap.MessageID{}), "Action": reflect.TypeOf(soap.Action{}), "To": reflect.TypeOf(soap.To{})},
+			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(ws.MessageID{}), "Action": reflect.TypeOf(ws.Action{}), "To": reflect.TypeOf(ws.To{})},
 			bdyTypesInfo:    map[string]reflect.Type{"Sample00": reflect.TypeOf(Sample00{})},
 		},
 	}
@@ -51,25 +56,21 @@ func TestEncodeEnvelope(t *testing.T) {
 
 	testFunc := func(version string, tests []useCase) {
 		for _, n := range tests {
-			t.Log("")
 			t.Logf("\t%s", n.name)
 			{
-				sc, err := soap.NewClient(soap.V11)
-				reqEnv, err := sc.NewRequestBuilder().
-					SetAction("TestingAction").
-					AddSOAPHeaders(n.reqSOAPHeaders).
-					AddPayload(n.reqPayload).
-					Build()
-
+				ec, err := soap.NewEnvelopeConfig(soap.V11)
 				if err != nil {
 					t.Errorf("\t\t%s Should not get an error, but unexpected error received after trying to build envelope request.", failure)
 					t.Errorf("\t\t  Error = [%v]", err)
 					continue
 				}
+				_, err = ec.SetAction("TestingAction").
+					SetSOAPHeaders(n.reqSOAPHeaders).
+					SetPayload(n.reqPayload).
+					GetHTTPBinding()
 
-				data, err := sc.EncodeEnvelope(reqEnv)
-				if data == nil || err != nil {
-					t.Errorf("\t\t%s Should not get an error, but unexpected error received after trying to encode envelope request.", failure)
+				if err != nil {
+					t.Errorf("\t\t%s Should not get an error, but unexpected error received after trying to build envelope request.", failure)
 					t.Errorf("\t\t  Error = [%v]", err)
 					continue
 				}
@@ -83,10 +84,121 @@ func TestEncodeEnvelope(t *testing.T) {
 	}
 }
 
-/*
-func TestEncodeEnvelope(t *testing.T) {
-	
-	
-	
+func ExampleNewEnvelopeConfig_setSOAP11Empty() {
+	ec, err := soap.NewEnvelopeConfig(soap.V11)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := ec.GetHTTPBinding()
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body></Body></Envelope>
 }
-*/
+
+func ExampleNewEnvelopeConfig_setSOAP11Header() {
+	type hdr struct {
+		Username string
+	}
+
+	ec, err := soap.NewEnvelopeConfig(soap.V11)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := ec.SetSOAPHeaders([]hdr{hdr{"John Doe"}}).
+		GetHTTPBinding()
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Header><hdr><Username>John Doe</Username></hdr></Header><Body></Body></Envelope>
+}
+
+func ExampleNewEnvelopeConfig_setSOAP11Payload() {
+	type GetWeather struct {
+		CityName    string
+		CountryName string
+	}
+
+	ec, err := soap.NewEnvelopeConfig(soap.V11)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := ec.SetPayload(GetWeather{CityName: "Miami", CountryName: "United States"}).
+		GetHTTPBinding()
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body><GetWeather><CityName>Miami</CityName><CountryName>United States</CountryName></GetWeather></Body></Envelope>
+}
+
+func ExampleNewEnvelopeConfig_setSOAP12Payload() {
+	type GetWeather struct {
+		CityName    string
+		CountryName string
+	}
+
+	ec, err := soap.NewEnvelopeConfig(soap.V12)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := ec.SetPayload(GetWeather{CityName: "Miami", CountryName: "United States"}).
+		GetHTTPBinding()
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetWeather><CityName>Miami</CityName><CountryName>United States</CountryName></GetWeather></Body></Envelope>
+}
+
+func ExampleDecodeEnvelope_setSOAP11() {
+	type ConvertTemp struct {
+		XMLName     xml.Name `xml:"http://www.webserviceX.NET ConvertTemp"`
+		Temperature float32  `xml:"Temperature,omitempty"`
+		FromUnit    string   `xml:"FromUnit,omitempty"`
+		ToUnit      string   `xml:"ToUnit,omitempty"`
+	}
+
+	ec, err := soap.NewEnvelopeConfig(soap.V12)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := ec.SetPayload(ConvertTemp{Temperature: 100.00, FromUnit: "degreeFahrenheit", ToUnit: "degreeCelsius"}).
+		SetAction("http://www.webserviceX.NET/ConvertTemp").
+		GetHTTPBinding()
+
+	r, err := http.NewRequest("POST", "http://www.webservicex.net/ConvertTemperature.asmx", bytes.NewBuffer(req.Message))
+	if err != nil {
+		panic(err)
+	}
+
+	if len(req.Headers) > 0 {
+		for k, v := range req.Headers {
+			r.Header.Add(k, v)
+		}
+	}
+
+	var client http.Client
+	resp, err := client.Do(r)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	respEnv, err := soap.DecodeEnvelope(soap.V12, resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(string(respEnv.Body().Payload()))
+
+	// Output:
+	// <ConvertTempResponse xmlns="http://www.webserviceX.NET/"><ConvertTempResult>0</ConvertTempResult></ConvertTempResponse>
+}
