@@ -24,8 +24,8 @@ type HTTPBinding struct {
 	Envelope Envelope
 }
 
-// EncodeEnvelope function builds a request SOAP envelope and return data ([]bytes) to be sent.
-func EncodeEnvelope(action string, e Envelope) (*HTTPBinding, error) {
+// GetHTTPBinding returns data ([]bytes) to be sent when using a http post.
+func GetHTTPBinding(action string, e Envelope) (*HTTPBinding, error) {
 	m, err := xml.Marshal(e)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,9 @@ func EncodeEnvelope(action string, e Envelope) (*HTTPBinding, error) {
 	}
 
 	hb := HTTPBinding{
-		Message: m,
-		Header:  h,
+		Message:  m,
+		Header:   h,
+		Envelope: e,
 	}
 
 	return &hb, nil

@@ -198,10 +198,10 @@ func ExampleDecodeEnvelope_setSOAP11() {
 	// <ConvertTempResponse xmlns="http://www.webserviceX.NET/"><ConvertTempResult>0</ConvertTempResult></ConvertTempResponse>
 }
 
-func ExampleEncodeEnvelope_setSOAP11Empty() {
+func ExampleGetHTTPBinding_setSOAP11Empty() {
 	var e soap.Envelope11
 
-	req, err := soap.EncodeEnvelope("", &e)
+	req, err := soap.GetHTTPBinding("", &e)
 	if err != nil {
 		panic(err)
 	}
@@ -212,10 +212,10 @@ func ExampleEncodeEnvelope_setSOAP11Empty() {
 	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body></Body></Envelope>
 }
 
-func ExampleEncodeEnvelope_setSOAP12Empty() {
+func ExampleGetHTTPBinding_setSOAP12Empty() {
 	var e soap.Envelope12
 
-	req, err := soap.EncodeEnvelope("", &e)
+	req, err := soap.GetHTTPBinding("", &e)
 	if err != nil {
 		panic(err)
 	}
