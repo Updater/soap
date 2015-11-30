@@ -24,38 +24,6 @@ type HTTPBinding struct {
 	Envelope Envelope
 }
 
-// GetHTTPBinding returns data ([]bytes) to be sent when using a http post.
-func GetHTTPBinding(action string, e Envelope) (*HTTPBinding, error) {
-	m, err := xml.Marshal(e)
-	if err != nil {
-		return nil, err
-	}
-
-	th := make(map[string]string)
-	switch e.(type) {
-	case *Envelope12:
-		th["Content-Type"] = "application/soap+xml; charset=utf-8; action=\"" + action + "\""
-	case *Envelope11:
-		th["Content-Type"] = "text/xml; charset=utf-8"
-		th["SOAPAction"] = action
-	default:
-		return nil, ErrInvalidVersion
-	}
-
-	h := make(http.Header)
-	for k, v := range th {
-		h.Add(k, v)
-	}
-
-	hb := HTTPBinding{
-		Message:  m,
-		Header:   h,
-		Envelope: e,
-	}
-
-	return &hb, nil
-}
-
 // DecodeEnvelope function returns an Response structure who contains a received SOAP envelope & a pointer to Request.
 func DecodeEnvelope(version string, r io.Reader) (Envelope, error) {
 	var buf bytes.Buffer

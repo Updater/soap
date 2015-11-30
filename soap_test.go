@@ -199,9 +199,9 @@ func ExampleDecodeEnvelope_setSOAP11() {
 }
 
 func ExampleGetHTTPBinding_setSOAP11Empty() {
-	var e soap.Envelope11
+	ec, err := soap.NewEnvelopeConfig(soap.V11)
 
-	req, err := soap.GetHTTPBinding("", &e)
+	req, err := ec.GetHTTPBinding()
 	if err != nil {
 		panic(err)
 	}
@@ -213,9 +213,9 @@ func ExampleGetHTTPBinding_setSOAP11Empty() {
 }
 
 func ExampleGetHTTPBinding_setSOAP12Empty() {
-	var e soap.Envelope12
+	ec, err := soap.NewEnvelopeConfig(soap.V12)
 
-	req, err := soap.GetHTTPBinding("", &e)
+	req, err := ec.GetHTTPBinding()
 	if err != nil {
 		panic(err)
 	}
