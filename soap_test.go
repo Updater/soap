@@ -178,12 +178,7 @@ func ExampleDecodeEnvelope_setSOAP11() {
 	if err != nil {
 		panic(err)
 	}
-
-	if len(req.Headers) > 0 {
-		for k, v := range req.Headers {
-			r.Header.Add(k, v)
-		}
-	}
+	r.Header = req.Header
 
 	var client http.Client
 	resp, err := client.Do(r)

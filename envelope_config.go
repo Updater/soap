@@ -1,6 +1,9 @@
 package soap
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"net/http"
+)
 
 // EnvelopeConfig is an structure to contain builder parameters.
 type EnvelopeConfig struct {
@@ -73,17 +76,22 @@ func (ec *EnvelopeConfig) GetHTTPBinding() (*HTTPBinding, error) {
 		return nil, err
 	}
 
-	h := make(map[string]string)
+	th := make(map[string]string)
 	if ec.version == V12 {
-		h["Content-Type"] = "application/soap+xml; charset=utf-8; action=\"" + ec.action + "\""
+		th["Content-Type"] = "application/soap+xml; charset=utf-8; action=\"" + ec.action + "\""
 	} else {
-		h["Content-Type"] = "text/xml; charset=utf-8"
-		h["SOAPAction"] = ec.action
+		th["Content-Type"] = "text/xml; charset=utf-8"
+		th["SOAPAction"] = ec.action
+	}
+
+	h := make(http.Header)
+	for k, v := range th {
+		h.Add(k, v)
 	}
 
 	return &HTTPBinding{
 		Message:  m,
-		Headers:  h,
+		Header:   h,
 		Envelope: e,
 	}, nil
 }

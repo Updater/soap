@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
+	"net/http"
 )
 
 // Constants to represent the different SOAP versions.
@@ -19,7 +20,7 @@ const (
 // Envelope represents the underlying object of the Message field.
 type HTTPBinding struct {
 	Message  []byte
-	Headers  map[string]string
+	Header   http.Header
 	Envelope Envelope
 }
 
@@ -32,7 +33,7 @@ func EncodeEnvelope(e *Envelope) (*HTTPBinding, error) {
 
 	hb := HTTPBinding{
 		Message: m,
-		Headers: nil,
+		Header:  nil,
 	}
 
 	return &hb, nil
