@@ -189,11 +189,39 @@ func ExampleDecodeEnvelope_setSOAP11() {
 
 	respEnv, err := soap.DecodeEnvelope(soap.V12, resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	fmt.Println(string(respEnv.Body().Payload()))
 
 	// Output:
 	// <ConvertTempResponse xmlns="http://www.webserviceX.NET/"><ConvertTempResult>0</ConvertTempResult></ConvertTempResponse>
+}
+
+func ExampleEncodeEnvelope_setSOAP11Empty() {
+	var e soap.Envelope11
+
+	req, err := soap.EncodeEnvelope("", &e)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body></Body></Envelope>
+}
+
+func ExampleEncodeEnvelope_setSOAP12Empty() {
+	var e soap.Envelope12
+
+	req, err := soap.EncodeEnvelope("", &e)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(req.Message))
+
+	// Output:
+	// <Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body></Body></Envelope>
 }

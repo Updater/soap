@@ -25,15 +25,31 @@ type HTTPBinding struct {
 }
 
 // EncodeEnvelope function builds a request SOAP envelope and return data ([]bytes) to be sent.
-func EncodeEnvelope(e *Envelope) (*HTTPBinding, error) {
+func EncodeEnvelope(action string, e Envelope) (*HTTPBinding, error) {
 	m, err := xml.Marshal(e)
 	if err != nil {
 		return nil, err
 	}
 
+	th := make(map[string]string)
+	switch e.(type) {
+	case *Envelope12:
+		th["Content-Type"] = "application/soap+xml; charset=utf-8; action=\"" + action + "\""
+	case *Envelope11:
+		th["Content-Type"] = "text/xml; charset=utf-8"
+		th["SOAPAction"] = action
+	default:
+		return nil, ErrInvalidVersion
+	}
+
+	h := make(http.Header)
+	for k, v := range th {
+		h.Add(k, v)
+	}
+
 	hb := HTTPBinding{
 		Message: m,
-		Header:  nil,
+		Header:  h,
 	}
 
 	return &hb, nil
