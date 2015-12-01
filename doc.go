@@ -1,3 +1,3 @@
-// Package soap ... TO BE ADDED
+// TO BE ADDED
 //
 package soap

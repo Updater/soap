@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Bridgevine/t-soap"
-	"github.com/Bridgevine/t-soap/ws"
+	"github.com/Bridgevine/t-from-home/t-soap"
 )
 
 // These constants provide visual markers for test output.
@@ -133,7 +132,7 @@ var fault12WD = soap.Fault12{
 }
 
 var soapHeaders = []interface{}{
-	&ws.MessageID{
+	&soap.MessageID{
 		XMLName: xml.Name{
 			Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing",
 			Local: "MessageID",
@@ -141,7 +140,7 @@ var soapHeaders = []interface{}{
 		ID:    "messageid-id-0001",
 		Value: "this is the message id",
 	},
-	&ws.Action{
+	&soap.Action{
 		XMLName: xml.Name{
 			Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing",
 			Local: "Action",
@@ -149,7 +148,7 @@ var soapHeaders = []interface{}{
 		ID:    "soap-header-id-0001",
 		Value: "soap header action test",
 	},
-	&ws.To{
+	&soap.To{
 		XMLName: xml.Name{
 			Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing",
 			Local: "To",

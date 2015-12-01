@@ -2,15 +2,32 @@ package soap_test
 
 import (
 	"bytes"
-	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
-	"github.com/Bridgevine/t-soap"
-	"github.com/Bridgevine/t-soap/ws"
+	"github.com/Bridgevine/t-from-home/t-soap"
+	"github.com/Bridgevine/t-from-home/t-xml"
 )
+
+// mockServer returns a pointer to a server to handle incomming requests.
+// This server will respond with exactly the same request received.
+func mockServer() *httptest.Server {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "text/xml")
+
+		defer r.Body.Close()
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r.Body)
+		fmt.Fprintln(w, buf.String())
+	}
+
+	return httptest.NewServer(http.HandlerFunc(f))
+}
 
 type useCase struct {
 	name            string
@@ -23,30 +40,31 @@ type useCase struct {
 	bdyTypesInfo    interface{}
 }
 
-func TestEncodeEnvelope(t *testing.T) {
-
+func TestClients(t *testing.T) {
+	// The http server mockup will send back the same request received.
+	// Base on that, our reqPayload should be the payload that we want to be able to unmarshal.
 	commonTests := []useCase{
 		useCase{
-			name:            "When preparing soap headers and body payload",
+			name:            "When sending soap headers and body payload",
 			reqSOAPHeaders:  soapHeaders,
 			reqPayload:      []interface{}{sample001},
 			expectedHeaders: soapHeaders,
 			expectedPayload: []interface{}{&sample002},
-			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(ws.MessageID{}), "Action": reflect.TypeOf(ws.Action{}), "To": reflect.TypeOf(ws.To{})},
+			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(soap.MessageID{}), "Action": reflect.TypeOf(soap.Action{}), "To": reflect.TypeOf(soap.To{})},
 			bdyTypesInfo:    map[string]reflect.Type{"Sample00": reflect.TypeOf(Sample00{})},
 		},
 	}
 
 	soap11Tests := []useCase{
 		useCase{
-			name:            "When preparing SOAP 1.1 Fault without Details as the body payload",
+			name:            "When sending SOAP 1.1 Fault without Details as the body payload",
 			reqPayload:      []interface{}{fault11WoD},
 			expectedPayload: []interface{}{&fault11WoD},
 			expectedFault:   &fault11WoD,
 			bdyTypesInfo:    map[string]interface{}{"Fault": &soap.Fault11{}},
 		},
 		useCase{
-			name:            "When preparing SOAP 1.1 Fault with Details as the body payload",
+			name:            "When sending SOAP 1.1 Fault with Details as the body payload",
 			reqPayload:      []interface{}{fault11WD},
 			expectedPayload: []interface{}{&fault11WD},
 			expectedFault:   &fault11WD,
@@ -54,174 +72,256 @@ func TestEncodeEnvelope(t *testing.T) {
 		},
 	}
 
+	soap12Tests := []useCase{
+		useCase{
+			name:            "When sending SOAP 1.2 Fault without Details as the body payload",
+			reqPayload:      []interface{}{fault12WoD},
+			expectedPayload: []interface{}{&fault12WoD},
+			expectedFault:   &fault12WoD,
+			bdyTypesInfo:    map[string]interface{}{"Fault": &soap.Fault12{}},
+		},
+		useCase{
+			name:            "When sending SOAP 1.2 Fault with Details as the body payload",
+			reqPayload:      []interface{}{fault12WD},
+			expectedPayload: []interface{}{&fault12WD},
+			expectedFault:   &fault12WD,
+			bdyTypesInfo:    map[string]reflect.Type{"Fault": reflect.TypeOf(soap.Fault12{})},
+		},
+	}
+
+	server := mockServer()
+	defer server.Close()
+
 	testFunc := func(version string, tests []useCase) {
+		client, err := soap.NewClient(server.URL)
+		if err != nil {
+			t.Errorf("\t\t%s Should not get an error, but unexpected error received when creating SOAP Client.", failure)
+			t.Errorf("\t\t  Error = [%v]", err)
+			return
+		}
+
 		for _, n := range tests {
+			t.Log("")
 			t.Logf("\t%s", n.name)
 			{
-				ec, err := soap.NewEnvelopeConfig(soap.V11)
+				env, err := soap.NewEnvelope(version, n.reqSOAPHeaders, n.reqPayload)
 				if err != nil {
-					t.Errorf("\t\t%s Should not get an error, but unexpected error received after trying to build envelope request.", failure)
+					t.Errorf("\t\t%s Should not get an error, but unexpected error received when creating the envelope.", failure)
 					t.Errorf("\t\t  Error = [%v]", err)
 					continue
 				}
-				_, err = ec.SetAction("TestingAction").
-					SetSOAPHeaders(n.reqSOAPHeaders).
-					SetPayload(n.reqPayload).
-					GetHTTPBinding()
+
+				req := soap.NewRequest("TestingAction", env)
 
 				if err != nil {
-					t.Errorf("\t\t%s Should not get an error, but unexpected error received after trying to build envelope request.", failure)
+					t.Errorf("\t\t%s Should not get an error, but unexpected error received after sending the request.", failure)
 					t.Errorf("\t\t  Error = [%v]", err)
 					continue
 				}
+
+				resp, err := client.Do(req)
+				if err != nil {
+					t.Errorf("\t\t%s Should not get an error, but unexpected error received after sending the request.", failure)
+					t.Errorf("\t\t  Error = [%v]", err)
+					continue
+				}
+
+				if len(n.expectedHeaders) > 0 {
+					if resp.Env.Header() == nil || len(resp.Env.Header().Content) == 0 {
+						t.Errorf("\t\t%s Should get some header items.", failure)
+					} else {
+						t.Logf("\t\t%s Should get some header items.", success)
+
+						receivedHeaders, err := xml.UnmarshalElement(resp.Env.Header().Content, n.hdrTypesInfo)
+						if err != nil {
+							t.Errorf("\t\t%s Should not get an error, but unexpected error received when unmarshalling the header items.", failure)
+							t.Errorf("\t\t  Error = [%v]", err)
+						} else if len(receivedHeaders) == 0 {
+							t.Errorf("\t\t%s Should get some header items after unmarshalling.", failure)
+						} else if !reflect.DeepEqual(n.expectedHeaders, receivedHeaders) {
+							t.Errorf("\t\t%s Should get the same header items as expected.", failure)
+						} else {
+							t.Logf("\t\t%s Should get the same header items as expected.", success)
+						}
+					}
+				} else if resp.Env.Header() != nil && len(resp.Env.Header().Content) > 0 {
+					t.Errorf("\t\t%s Should not get header items.", failure)
+				} else {
+					t.Logf("\t\t%s Should not get header items.", success)
+				}
+
+				if len(n.expectedPayload) > 0 {
+					if len(resp.Env.Body().Payload()) == 0 {
+						t.Errorf("\t\t%s Should get some body payload.", failure)
+						continue
+					}
+					t.Logf("\t\t%s Should get some body payload.", success)
+
+					receivedPayload, err := xml.UnmarshalElement(resp.Env.Body().Payload(), n.bdyTypesInfo)
+					if err != nil {
+						t.Errorf("\t\t%s Should not get an error, but unexpected error received when unmarshalling the body payload.", failure)
+						t.Errorf("\t\t  Error = [%v]", err)
+						continue
+					}
+					if len(receivedPayload) == 0 {
+						t.Errorf("\t\t%s Should not get an empty Body Payload after unmarshalling.", failure)
+						continue
+					}
+
+					if !reflect.DeepEqual(n.expectedPayload, receivedPayload) {
+						t.Errorf("\t\t%s Should get the same body payload as expected.", failure)
+						continue
+					}
+					t.Logf("\t\t%s Should get the same body payload as expected.", success)
+
+					if n.expectedFault != nil {
+						if resp.Env.Body().Fault() == nil {
+							t.Errorf("\t\t%s Should get a Fault.", failure)
+							continue
+						}
+						t.Logf("\t\t%s Should get a Fault [Code: %v] [Description: %v] [Details-Lenght: %v].", success, resp.Env.Body().Fault().GetCode(), resp.Env.Body().Fault().Description(), len(resp.Env.Body().Fault().Details()))
+
+						if !reflect.DeepEqual(n.expectedFault, resp.Env.Body().Fault()) {
+							t.Errorf("\t\t%s Should get the same fault as expected.", failure)
+							continue
+						}
+						t.Logf("\t\t%s Should get the same fault as expected.", success)
+					} else if resp.Env.Body().Fault() != nil {
+						t.Errorf("\t\t%s Should not get Fault.", failure)
+					} else {
+						t.Logf("\t\t%s Should not get Fault.", success)
+					}
+
+					continue
+				}
+
+				results, err := xml.UnmarshalElement(resp.Env.Body().Payload(), n.bdyTypesInfo)
+				if len(results) > 0 {
+					t.Errorf("\t\t%s Should get an empty body.", failure)
+					continue
+				}
+				t.Logf("\t\t%s Should get an empty body.", success)
 			}
 		}
 	}
 
-	t.Log("Given the need to test the ability of a SOAP 1.1 client to prepare requests and process responses.")
+	t.Log("Given the need to test the ability of a SOAP 1.1 client to send requests and process responses.")
 	{
 		testFunc(soap.V11, append(commonTests, soap11Tests...))
 	}
+
+	t.Log("")
+	t.Log("Given the need to test the ability of a SOAP 1.2 client to send requests and process responses.")
+	{
+		testFunc(soap.V12, append(commonTests, soap12Tests...))
+	}
 }
 
-func ExampleNewEnvelopeConfig_setSOAP11Empty() {
-	ec, err := soap.NewEnvelopeConfig(soap.V11)
-	if err != nil {
-		panic(err)
+func TestClientErrors(t *testing.T) {
+	server := mockServer()
+	defer server.Close()
+
+	tests := []struct {
+		name              string
+		endpointURL       string
+		soapHeaders       []interface{}
+		payload           []interface{}
+		shouldEnvFail     bool
+		shouldRequestFail bool
+	}{
+		{
+			name:              "When sending request without specifying the URL of the endpoint.",
+			soapHeaders:       soapHeaders,
+			payload:           []interface{}{sample001},
+			shouldRequestFail: true,
+		},
+		{
+			name:              "When sending request specifying the URL of the endpoint.",
+			endpointURL:       server.URL,
+			soapHeaders:       soapHeaders,
+			payload:           []interface{}{sample001},
+			shouldRequestFail: false,
+		},
+		{
+			name:          "When sending header items that cannot be marshalled.",
+			endpointURL:   server.URL,
+			soapHeaders:   []interface{}{Sample02{}},
+			payload:       []interface{}{sample001},
+			shouldEnvFail: true,
+		},
+		{
+			name:          "When sending header items that can be marshalled.",
+			endpointURL:   server.URL,
+			soapHeaders:   soapHeaders,
+			payload:       []interface{}{sample001},
+			shouldEnvFail: false,
+		},
+		{
+			name:          "When sending a payload that cannot be marshalled.",
+			endpointURL:   server.URL,
+			soapHeaders:   soapHeaders,
+			payload:       []interface{}{Sample02{}},
+			shouldEnvFail: true,
+		},
+		{
+			name:          "When sending a payload that can be marshalled.",
+			endpointURL:   server.URL,
+			soapHeaders:   soapHeaders,
+			payload:       []interface{}{sample001},
+			shouldEnvFail: false,
+		},
 	}
 
-	req, err := ec.GetHTTPBinding()
+	t.Log("")
+	t.Log("Given the need to test the ability of a SOAP client to return errors.")
+	{
+		for _, n := range tests {
+			t.Log("")
+			t.Logf("\t%s", n.name)
+			{
+				client, err := soap.NewClient(n.endpointURL)
+				if err != nil {
+					t.Errorf("\t\t%s Should not get an error, but unexpected error received when creating SOAP Client.", failure)
+					t.Errorf("\t\t  Error = [%v]", err)
+					continue
+				}
 
-	fmt.Println(string(req.Message))
+				env, err := soap.NewEnvelope(soap.V11, n.soapHeaders, n.payload)
+				if n.shouldEnvFail {
+					if err == nil {
+						t.Errorf("\t\t%s Should get an error creating the envelope.", failure)
+						continue
+					}
+					t.Logf("\t\t%s Should get an error creating the envelope.", success)
+					t.Logf("\t\t  Error = [%v]", err)
+					continue
+				}
 
-	// Output:
-	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body></Body></Envelope>
-}
+				if err != nil {
+					t.Errorf("\t\t%s Should not get an error creating the envelope.", failure)
+					t.Logf("\t\t  Error = [%v]", err)
+					continue
+				}
+				t.Logf("\t\t%s Should not get an error creating the envelope.", success)
 
-func ExampleNewEnvelopeConfig_setSOAP11Header() {
-	type hdr struct {
-		Username string
+				_, err = client.Do(soap.NewRequest("TestingAction", env))
+				if n.shouldRequestFail {
+					if err == nil {
+						t.Errorf("\t\t%s Should get an error sending the request.", failure)
+						continue
+					}
+					t.Logf("\t\t%s Should get an error sending the request.", success)
+					t.Logf("\t\t  Error = [%v]", err)
+					continue
+				}
+
+				if err != nil {
+					t.Errorf("\t\t%s Should not get an error sending the request.", failure)
+					t.Logf("\t\t  Error = [%v]", err)
+					continue
+				}
+				t.Logf("\t\t%s Should not get an error sending the request.", success)
+			}
+		}
 	}
-
-	ec, err := soap.NewEnvelopeConfig(soap.V11)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := ec.SetSOAPHeaders([]hdr{hdr{"John Doe"}}).
-		GetHTTPBinding()
-
-	fmt.Println(string(req.Message))
-
-	// Output:
-	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Header><hdr><Username>John Doe</Username></hdr></Header><Body></Body></Envelope>
-}
-
-func ExampleNewEnvelopeConfig_setSOAP11Payload() {
-	type GetWeather struct {
-		CityName    string
-		CountryName string
-	}
-
-	ec, err := soap.NewEnvelopeConfig(soap.V11)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := ec.SetPayload(GetWeather{CityName: "Miami", CountryName: "United States"}).
-		GetHTTPBinding()
-
-	fmt.Println(string(req.Message))
-
-	// Output:
-	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body><GetWeather><CityName>Miami</CityName><CountryName>United States</CountryName></GetWeather></Body></Envelope>
-}
-
-func ExampleNewEnvelopeConfig_setSOAP12Payload() {
-	type GetWeather struct {
-		CityName    string
-		CountryName string
-	}
-
-	ec, err := soap.NewEnvelopeConfig(soap.V12)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := ec.SetPayload(GetWeather{CityName: "Miami", CountryName: "United States"}).
-		GetHTTPBinding()
-
-	fmt.Println(string(req.Message))
-
-	// Output:
-	// <Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body><GetWeather><CityName>Miami</CityName><CountryName>United States</CountryName></GetWeather></Body></Envelope>
-}
-
-func ExampleDecodeEnvelope_setSOAP11() {
-	type ConvertTemp struct {
-		XMLName     xml.Name `xml:"http://www.webserviceX.NET ConvertTemp"`
-		Temperature float32  `xml:"Temperature,omitempty"`
-		FromUnit    string   `xml:"FromUnit,omitempty"`
-		ToUnit      string   `xml:"ToUnit,omitempty"`
-	}
-
-	ec, err := soap.NewEnvelopeConfig(soap.V12)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := ec.SetPayload(ConvertTemp{Temperature: 100.00, FromUnit: "degreeFahrenheit", ToUnit: "degreeCelsius"}).
-		SetAction("http://www.webserviceX.NET/ConvertTemp").
-		GetHTTPBinding()
-
-	r, err := http.NewRequest("POST", "http://www.webservicex.net/ConvertTemperature.asmx", bytes.NewBuffer(req.Message))
-	if err != nil {
-		panic(err)
-	}
-	r.Header = req.Header
-
-	var client http.Client
-	resp, err := client.Do(r)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	respEnv, err := soap.DecodeEnvelope(soap.V12, resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(respEnv.Body().Payload()))
-
-	// Output:
-	// <ConvertTempResponse xmlns="http://www.webserviceX.NET/"><ConvertTempResult>0</ConvertTempResult></ConvertTempResponse>
-}
-
-func ExampleGetHTTPBinding_setSOAP11Empty() {
-	ec, err := soap.NewEnvelopeConfig(soap.V11)
-
-	req, err := ec.GetHTTPBinding()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(req.Message))
-
-	// Output:
-	// <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/"><Body></Body></Envelope>
-}
-
-func ExampleGetHTTPBinding_setSOAP12Empty() {
-	ec, err := soap.NewEnvelopeConfig(soap.V12)
-
-	req, err := ec.GetHTTPBinding()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(req.Message))
-
-	// Output:
-	// <Envelope xmlns="http://www.w3.org/2003/05/soap-envelope"><Body></Body></Envelope>
 }
