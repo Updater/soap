@@ -1,30 +1,26 @@
 package soap
 
-import "encoding/xml"
+import (
+	"bytes"
+	"encoding/xml"
+	"net/http"
+)
 
-// EnvBuilder represents the behaviors that an Envelope builder must satisfy.
-type EnvBuilder interface {
-	SetHeaders(hdrs ...interface{}) EnvBuilder
-	AddHeaders(hdrs ...interface{}) EnvBuilder
-	SetPayload(items ...interface{}) EnvBuilder
-	AddPayload(items ...interface{}) EnvBuilder
-	Build(version string) (Envelope, error)
-}
-
-// envBuilder is an implementation of the EnvBuilder interface.
-type envBuilder struct {
+// EnvBuilder is a SOAP Envelope builder.
+type EnvBuilder struct {
 	headers []interface{}
 	payload []interface{}
+	env     Envelope
 }
 
 // SetHeaders sets the SOAP headers, overriding the previous ones.
-func (bldr *envBuilder) SetHeaders(hdrs ...interface{}) EnvBuilder {
+func (bldr *EnvBuilder) SetHeaders(hdrs ...interface{}) *EnvBuilder {
 	bldr.headers = hdrs
 	return bldr
 }
 
 // AddHeaders adds the specified headers to the current headers.
-func (bldr *envBuilder) AddHeaders(hdrs ...interface{}) EnvBuilder {
+func (bldr *EnvBuilder) AddHeaders(hdrs ...interface{}) *EnvBuilder {
 	if len(hdrs) > 0 {
 		bldr.headers = append(bldr.headers, hdrs...)
 	}
@@ -33,13 +29,13 @@ func (bldr *envBuilder) AddHeaders(hdrs ...interface{}) EnvBuilder {
 }
 
 // SetPayload sets the payload, overriding the previous one.
-func (bldr *envBuilder) SetPayload(items ...interface{}) EnvBuilder {
+func (bldr *EnvBuilder) SetPayload(items ...interface{}) *EnvBuilder {
 	bldr.payload = items
 	return bldr
 }
 
 // AddPayload adds the specified items to the current payload.
-func (bldr *envBuilder) AddPayload(items ...interface{}) EnvBuilder {
+func (bldr *EnvBuilder) AddPayload(items ...interface{}) *EnvBuilder {
 	if len(items) > 0 {
 		bldr.payload = append(bldr.payload, items...)
 	}
@@ -47,8 +43,15 @@ func (bldr *envBuilder) AddPayload(items ...interface{}) EnvBuilder {
 	return bldr
 }
 
+// Env will return the latest envelope built with this builder.
+// If neither Build nor BuildHTTPRequest has been called successfully,
+// nil will be returned.
+func (bldr *EnvBuilder) Env() Envelope {
+	return bldr.env
+}
+
 // Build builds an Envelope for the specified SOAP version.
-func (bldr *envBuilder) Build(version string) (Envelope, error) {
+func (bldr *EnvBuilder) Build(version string) (Envelope, error) {
 	if !isValidVersion(version) {
 		return nil, ErrInvalidVersion
 	}
@@ -77,9 +80,31 @@ func (bldr *envBuilder) Build(version string) (Envelope, error) {
 	return env, nil
 }
 
+// BuildHTTPRequest builds a HTTP Request.
+func (bldr *EnvBuilder) BuildHTTPRequest(version, action string) (*http.Request, error) {
+	env, err := bldr.Build(version)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := xml.Marshal(env)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", "", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = getHTTPHeaders(version, action)
+
+	return req, nil
+}
+
 // NewEnvBuilder returns a new Envelope builder.
-func NewEnvBuilder() EnvBuilder {
-	return &envBuilder{}
+func NewEnvBuilder() *EnvBuilder {
+	return &EnvBuilder{}
 }
 
 // NewEnvelope returns a new Envelope based on the parameters passed.

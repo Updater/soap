@@ -3,6 +3,8 @@ package ws
 import (
 	"encoding/xml"
 	"time"
+
+	bvxml "github.com/Bridgevine/t-xml"
 )
 
 // Constants that represent the different password types.
@@ -290,7 +292,7 @@ type SecurityHeader struct {
 	Timestamp           *Timestamp           `xml:"Timestamp,omitempty"`
 	BinarySecurityToken *BinarySecurityToken `xml:"BinarySecurityToken,omitempty"`
 	UsernameToken       *UsernameToken       `xml:"UsernameToken,omitempty"`
-	Signatures          []Signature          `xml:"Signature,omitempty"`
+	Signatures          []bvxml.Signature    `xml:"Signature,omitempty"`
 
 	// Items is an extensibility mechanism to allow different (extensible) types
 	// of security information, based on a schema, to be passed. It could be
@@ -340,14 +342,14 @@ type BinarySecurityToken struct {
 //        element that contains a <ds:X509IssuerSerial> element that uniquely
 //        identifies an end entity certificate by its X.509 Issuer and Serial Number.
 type SecurityTokenReference struct {
-	XMLName       xml.Name       `xml:"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd SecurityTokenReference"`
-	ID            string         `xml:"Id,attr,omitempty"`
-	Usage         string         `xml:"Usage,attr,omitempty"`
-	TokenType     string         `xml:"TokenType,attr,omitempty"`
-	Reference     *WSSEReference `xml:"Reference,omitempty"`
-	KeyIdentifier *KeyIdentifier `xml:"KeyIdentifier,omitempty"`
-	Embedded      *Embedded      `xml:"Embedded,omitempty"`
-	X509Data      *X509Data      `xml:"X509Data,,omitempty"`
+	XMLName       xml.Name        `xml:"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd SecurityTokenReference"`
+	ID            string          `xml:"Id,attr,omitempty"`
+	Usage         string          `xml:"Usage,attr,omitempty"`
+	TokenType     string          `xml:"TokenType,attr,omitempty"`
+	Reference     *WSSEReference  `xml:"Reference,omitempty"`
+	KeyIdentifier *KeyIdentifier  `xml:"KeyIdentifier,omitempty"`
+	Embedded      *Embedded       `xml:"Embedded,omitempty"`
+	X509Data      *bvxml.X509Data `xml:"X509Data,omitempty"`
 
 	// Items is an extensibility mechanism to allow different (extensible)
 	// types of security information, based on a schema, to be passed.

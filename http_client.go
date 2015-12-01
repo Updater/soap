@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	bvhttp "github.com/Bridgevine/t-from-home/t-http"
+	bvhttp "github.com/Bridgevine/t-http"
 )
 
 // Errors that can be thrown.
@@ -24,7 +24,7 @@ type httpClient struct {
 
 	// The HTTP client pool to be used by this implementation of the
 	// HTTPClientAdapter interface.
-	pool bvhttp.ClientPool
+	pool *bvhttp.ClientPool
 }
 
 // Do sends a request.
@@ -82,7 +82,7 @@ func Timeout(timeout time.Duration) HTTPOption {
 
 // HTTPClientPool returns a configuration function to configure the http client pool
 // to be used by a client.
-func HTTPClientPool(pool bvhttp.ClientPool) HTTPOption {
+func HTTPClientPool(pool *bvhttp.ClientPool) HTTPOption {
 	return func(c *httpClient) {
 		c.pool = pool
 	}

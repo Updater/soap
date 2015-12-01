@@ -8,8 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Bridgevine/t-from-home/t-soap"
-	"github.com/Bridgevine/t-from-home/t-xml"
+	"github.com/Bridgevine/t-soap"
+	"github.com/Bridgevine/t-soap/ws"
+	"github.com/Bridgevine/t-xml"
 )
 
 // mockServer returns a pointer to a server to handle incomming requests.
@@ -50,7 +51,7 @@ func TestClients(t *testing.T) {
 			reqPayload:      []interface{}{sample001},
 			expectedHeaders: soapHeaders,
 			expectedPayload: []interface{}{&sample002},
-			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(soap.MessageID{}), "Action": reflect.TypeOf(soap.Action{}), "To": reflect.TypeOf(soap.To{})},
+			hdrTypesInfo:    map[string]reflect.Type{"MessageID": reflect.TypeOf(ws.MessageID{}), "Action": reflect.TypeOf(ws.Action{}), "To": reflect.TypeOf(ws.To{})},
 			bdyTypesInfo:    map[string]reflect.Type{"Sample00": reflect.TypeOf(Sample00{})},
 		},
 	}
