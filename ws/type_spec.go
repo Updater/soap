@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"time"
 
-	bvxml "github.com/Bridgevine/t-xml"
+	bvxml "github.com/Bridgevine/xml"
 )
 
 // Constants that represent the different password types.
@@ -346,7 +346,7 @@ type SecurityTokenReference struct {
 	ID            string          `xml:"Id,attr,omitempty"`
 	Usage         string          `xml:"Usage,attr,omitempty"`
 	TokenType     string          `xml:"TokenType,attr,omitempty"`
-	Reference     *Reference      `xml:"Reference,omitempty"`
+	Reference     *WSSEReference  `xml:"Reference,omitempty"`
 	KeyIdentifier *KeyIdentifier  `xml:"KeyIdentifier,omitempty"`
 	Embedded      *Embedded       `xml:"Embedded,omitempty"`
 	X509Data      *bvxml.X509Data `xml:"X509Data,omitempty"`
@@ -356,8 +356,8 @@ type SecurityTokenReference struct {
 	Items []interface{} `xml:",omitempty"`
 }
 
-// Reference represents a reference to an external security token.
-type Reference struct {
+// WSSEReference represents a reference to an external security token.
+type WSSEReference struct {
 	XMLName xml.Name `xml:"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd Reference"`
 	ID      string   `xml:"Id,attr,omitempty"`
 	URI     string   `xml:"URI,attr,omitempty"`

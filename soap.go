@@ -26,8 +26,8 @@ func isValidVersion(version string) bool {
 
 // getHTTPHeaders gets the required HTTP headers that must be sent
 // with an HTTP request that carries a SOAP message.
-func getHTTPHeaders(version, action string) http.Header {
-	action = strings.Trim(version, " ")
+func getHTTPHeaders(version string, action string) http.Header {
+	action = strings.Trim(action, " ")
 
 	headers := make(http.Header)
 
@@ -43,7 +43,7 @@ func getHTTPHeaders(version, action string) http.Header {
 
 // GetHTTPHeaders gets the required HTTP headers that must be sent
 // with an HTTP request that carries a SOAP message.
-func GetHTTPHeaders(version, action string) (http.Header, error) {
+func GetHTTPHeaders(version string, action string) (http.Header, error) {
 	if !isValidVersion(version) {
 		return nil, ErrInvalidVersion
 	}

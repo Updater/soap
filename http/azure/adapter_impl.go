@@ -1,12 +1,12 @@
-package soap
+package azure
 
 import (
 	"bytes"
 	"errors"
-	"net/http"
 	"time"
 
-	bvhttp "github.com/Bridgevine/http"
+	azhttp "github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/Bridgevine/t-soap/http"
 )
 
 // Errors that can be thrown.
@@ -14,37 +14,39 @@ var (
 	ErrURLNotSpecified = errors.New("The URL of the endpoint has not been specified.")
 )
 
-// httpClient is an implementation of the HTTPClientAdapter interface that relies
-// on the core http package.
-type httpClient struct {
+// client is an implementation of the ClientAdapter interface that relies
+// on the azure http package.
+type client struct {
 	// The timeout specifies a time limit for requests made by a client.
 	// If greater than zero, the maximum amount of time to wait for a response.
 	// A Timeout of zero means no timeout.
 	timeout time.Duration
 
 	// The HTTP client pool to be used by this implementation of the
-	// HTTPClientAdapter interface.
-	pool *bvhttp.ClientPool
+	// ClientAdapter interface.
+	pool *ClientPool
 }
 
 // Do sends a request.
-func (c *httpClient) Do(req *HTTPRequest) (*HTTPResponse, error) {
+func (c *client) Do(req *http.Request) (*http.Response, error) {
 	if req.URL == "" {
 		return nil, ErrURLNotSpecified
 	}
 
-	httpReq, err := http.NewRequest(req.Method, req.URL, bytes.NewBuffer(req.Body))
+	httpReq, err := azhttp.NewRequest(req.Method, req.URL, bytes.NewBuffer(req.Body))
 	if err != nil {
 		return nil, err
 	}
 
-	httpReq.Header = req.Header
+	for hdr := range req.Header {
+		httpReq.Header.Set(hdr, req.Header.Get(hdr))
+	}
 
-	req.sentAt = time.Now()
+	req.SentAt = time.Now()
 
 	pool := c.pool
 	if pool == nil {
-		pool = bvhttp.DefaultClientPool
+		pool = DefaultClientPool
 	}
 
 	httpRes, err := pool.GetClient(c.timeout).Do(httpReq)
@@ -58,39 +60,39 @@ func (c *httpClient) Do(req *HTTPRequest) (*HTTPResponse, error) {
 		return nil, err
 	}
 
-	resp := HTTPResponse{
+	resp := http.Response{
 		Body:       buf.Bytes(),
 		Request:    req,
-		receivedAt: time.Now(),
+		ReceivedAt: time.Now(),
 	}
 
 	return &resp, nil
 }
 
-// HTTPOption represents a configuration function for a HTTP client.
+// Option represents a configuration function for a HTTP client.
 // An Option will configure or set up internal details of a HTTP client.
-type HTTPOption func(*httpClient)
+type Option func(*client)
 
-// Timeout returns a configuration function to configure the timeout of a client.
+// SetTimeout returns a configuration function to configure the timeout of a client.
 // The timeout parameter specifies a time limit for requests made by a client.
 // A Timeout of zero means no timeout.
-func Timeout(timeout time.Duration) HTTPOption {
-	return func(c *httpClient) {
+func SetTimeout(timeout time.Duration) Option {
+	return func(c *client) {
 		c.timeout = timeout
 	}
 }
 
-// HTTPClientPool returns a configuration function to configure the http client pool
+// SetClientPool returns a configuration function to configure the http client pool
 // to be used by a client.
-func HTTPClientPool(pool *bvhttp.ClientPool) HTTPOption {
-	return func(c *httpClient) {
+func SetClientPool(pool *ClientPool) Option {
+	return func(c *client) {
 		c.pool = pool
 	}
 }
 
-// NewHTTPClientAdapter creates a new HTTP client adapter and set its initial state.
-func NewHTTPClientAdapter(opts ...HTTPOption) HTTPClientAdapter {
-	c := &httpClient{}
+// NewClientAdapter creates a new HTTP client adapter and set its initial state.
+func NewClientAdapter(opts ...Option) http.ClientAdapter {
+	c := &client{}
 
 	for _, opt := range opts {
 		opt(c)

@@ -63,7 +63,7 @@ func (bldr *EnvBuilder) Build(version string) (Envelope, error) {
 }
 
 // BuildHTTPRequest builds a HTTP Request.
-func (bldr *EnvBuilder) BuildHTTPRequest(version, action string) (*http.Request, error) {
+func (bldr *EnvBuilder) BuildHTTPRequest(version string, action string) (*http.Request, error) {
 	env, err := bldr.Build(version)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func NewEnvBuilder() *EnvBuilder {
 }
 
 // NewEnvelope returns a new Envelope based on the parameters passed.
-func NewEnvelope(version string, header, payload interface{}) (Envelope, error) {
+func NewEnvelope(version string, header interface{}, payload interface{}) (Envelope, error) {
 	return NewEnvBuilder().
 		SetHeaders(header).
 		SetPayload(payload).
