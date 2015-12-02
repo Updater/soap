@@ -19,27 +19,9 @@ func (bldr *EnvBuilder) SetHeaders(hdrs ...interface{}) *EnvBuilder {
 	return bldr
 }
 
-// AddHeaders adds the specified headers to the current headers.
-func (bldr *EnvBuilder) AddHeaders(hdrs ...interface{}) *EnvBuilder {
-	if len(hdrs) > 0 {
-		bldr.headers = append(bldr.headers, hdrs...)
-	}
-
-	return bldr
-}
-
 // SetPayload sets the payload, overriding the previous one.
 func (bldr *EnvBuilder) SetPayload(items ...interface{}) *EnvBuilder {
 	bldr.payload = items
-	return bldr
-}
-
-// AddPayload adds the specified items to the current payload.
-func (bldr *EnvBuilder) AddPayload(items ...interface{}) *EnvBuilder {
-	if len(items) > 0 {
-		bldr.payload = append(bldr.payload, items...)
-	}
-
 	return bldr
 }
 
@@ -110,7 +92,7 @@ func NewEnvBuilder() *EnvBuilder {
 // NewEnvelope returns a new Envelope based on the parameters passed.
 func NewEnvelope(version string, header, payload interface{}) (Envelope, error) {
 	return NewEnvBuilder().
-		AddHeaders(header).
-		AddPayload(payload).
+		SetHeaders(header).
+		SetPayload(payload).
 		Build(version)
 }

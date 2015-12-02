@@ -10,7 +10,7 @@ import (
 
 	"github.com/Bridgevine/t-soap"
 	"github.com/Bridgevine/t-soap/ws"
-	"github.com/Bridgevine/t-xml"
+	"github.com/Bridgevine/xml"
 )
 
 // mockServer returns a pointer to a server to handle incomming requests.
