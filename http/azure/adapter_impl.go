@@ -7,7 +7,7 @@ import (
 
 	azhttp "github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/Bridgevine/http/azure"
-	"github.com/Bridgevine/t-soap/http"
+	"github.com/Bridgevine/soap/http"
 )
 
 // Errors that can be thrown.

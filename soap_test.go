@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Bridgevine/t-soap"
-	"github.com/Bridgevine/t-soap/ws"
+	"github.com/Bridgevine/soap"
+	"github.com/Bridgevine/soap/ws"
 	"github.com/Bridgevine/xml"
 )
 
