@@ -6,6 +6,7 @@ import (
 	"time"
 
 	azhttp "github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/Bridgevine/http/azure"
 	"github.com/Bridgevine/t-soap/http"
 )
 
@@ -24,7 +25,7 @@ type client struct {
 
 	// The HTTP client pool to be used by this implementation of the
 	// ClientAdapter interface.
-	pool *ClientPool
+	pool *azure.ClientPool
 }
 
 // Do sends a request.
@@ -46,7 +47,7 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 
 	pool := c.pool
 	if pool == nil {
-		pool = DefaultClientPool
+		pool = azure.DefaultClientPool
 	}
 
 	httpRes, err := pool.GetClient(c.timeout).Do(httpReq)
@@ -84,7 +85,7 @@ func SetTimeout(timeout time.Duration) Option {
 
 // SetClientPool returns a configuration function to configure the http client pool
 // to be used by a client.
-func SetClientPool(pool *ClientPool) Option {
+func SetClientPool(pool *azure.ClientPool) Option {
 	return func(c *client) {
 		c.pool = pool
 	}
