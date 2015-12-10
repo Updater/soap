@@ -1,6 +1,10 @@
 package soap
 
-import "encoding/xml"
+import (
+	"bytes"
+	"encoding/xml"
+	"net/http"
+)
 
 // Header models the header section of the SOAP Envelope.
 type Header struct {
@@ -11,8 +15,25 @@ type Header struct {
 type Envelope interface {
 	Header() *Header
 	Body() Body
+	GetHTTPRequest(action string) (*http.Request, error)
 	setHeader(*Header)
 	version() string
+}
+
+func getHTTPRequest(env Envelope, action string) (*http.Request, error) {
+	body, err := xml.Marshal(env)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", "", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = getHTTPHeaders(env.version(), action)
+
+	return req, nil
 }
 
 // Envelope11 models an envelope following the SOAP 1.1 Envelope specs.
@@ -30,6 +51,11 @@ func (e *Envelope11) Header() *Header {
 // Body implements the Body method of the Envelope interface.
 func (e *Envelope11) Body() Body {
 	return &e.BodyElem
+}
+
+// GetHTTPRequest TODO.
+func (e *Envelope11) GetHTTPRequest(action string) (*http.Request, error) {
+	return getHTTPRequest(e, action)
 }
 
 // setHeader implements the setHeader method of the Envelope interface.
@@ -57,6 +83,11 @@ func (e *Envelope12) Header() *Header {
 // Body implements the Body method of the Envelope interface.
 func (e *Envelope12) Body() Body {
 	return &e.BodyElem
+}
+
+// GetHTTPRequest TODO.
+func (e *Envelope12) GetHTTPRequest(action string) (*http.Request, error) {
+	return getHTTPRequest(e, action)
 }
 
 // setHeader implements the setHeader method of the Envelope interface.
