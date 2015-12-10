@@ -41,16 +41,6 @@ func getHTTPHeaders(version string, action string) http.Header {
 	return headers
 }
 
-// GetHTTPHeaders gets the required HTTP headers that must be sent
-// with an HTTP request that carries a SOAP message.
-func GetHTTPHeaders(version string, action string) (http.Header, error) {
-	if !isValidVersion(version) {
-		return nil, ErrInvalidVersion
-	}
-
-	return getHTTPHeaders(version, action), nil
-}
-
 // decodeEnvelope decodes the specified data into an Envelope
 // of the specified version.
 func decodeEnvelope(version string, data []byte) (Envelope, error) {

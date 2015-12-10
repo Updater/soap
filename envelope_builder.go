@@ -1,7 +1,6 @@
 package soap
 
 import (
-	"bytes"
 	"encoding/xml"
 	"net/http"
 )
@@ -69,19 +68,7 @@ func (bldr *EnvBuilder) BuildHTTPRequest(version string, action string) (*http.R
 		return nil, err
 	}
 
-	body, err := xml.Marshal(env)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", "", bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header = getHTTPHeaders(version, action)
-
-	return req, nil
+	return env.GetHTTPRequest(action)
 }
 
 // NewEnvBuilder returns a new Envelope builder.
