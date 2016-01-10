@@ -66,10 +66,10 @@ func envelopeMarshalXML(env Envelope, xmlns map[string]string, e *xml.Encoder, s
 
 // Envelope11 models an envelope following the SOAP 1.1 Envelope specs.
 type Envelope11 struct {
-	XMLName    xml.Name          `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
-	Xmlns      map[string]string //`xml:"-"`
-	HeaderElem *Header           `xml:"Header,omitempty"`
-	BodyElem   Body11            `xml:"Body"`
+	XMLName    xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
+	Xmlns      map[string]string
+	HeaderElem *Header `xml:"Header,omitempty"`
+	BodyElem   Body11  `xml:"Body"`
 }
 
 // Header implements the Header method of the Envelope interface.
