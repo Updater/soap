@@ -10,6 +10,7 @@ type EnvBuilder struct {
 	headers []interface{}
 	payload []interface{}
 	env     Envelope
+	xmlns   map[string]string
 }
 
 // SetHeaders sets the SOAP headers, overriding the previous ones.
@@ -42,9 +43,9 @@ func (bldr *EnvBuilder) Build(version string) (Envelope, error) {
 		return nil, err
 	}
 
-	var env Envelope = &Envelope11{BodyElem: Body11{PayloadElem: bdy}}
+	var env Envelope = &Envelope11{BodyElem: Body11{PayloadElem: bdy}, Xmlns: bldr.xmlns}
 	if version == V12 {
-		env = &Envelope12{BodyElem: Body12{PayloadElem: bdy}}
+		env = &Envelope12{BodyElem: Body12{PayloadElem: bdy}, Xmlns: bldr.xmlns}
 	}
 
 	if len(bldr.headers) > 0 {
@@ -76,10 +77,26 @@ func NewEnvBuilder() *EnvBuilder {
 	return &EnvBuilder{}
 }
 
+// EnvBuilderOption represents a configuration function for an EnvBuilder.
+// An Option will configure or set up internal details of an EnvBuilder.
+type EnvBuilderOption func(*EnvBuilder)
+
+// SetXmlns returns a configuration function to configure the namespace prefix of an EnvBuilderOption.
+func SetXmlns(xmlns map[string]string) EnvBuilderOption {
+	return func(bldr *EnvBuilder) {
+		bldr.xmlns = xmlns
+	}
+}
+
 // NewEnvelope returns a new Envelope based on the parameters passed.
-func NewEnvelope(version string, header interface{}, payload interface{}) (Envelope, error) {
-	return NewEnvBuilder().
+func NewEnvelope(version string, header interface{}, payload interface{}, opts ...EnvBuilderOption) (Envelope, error) {
+	bldr := NewEnvBuilder().
 		SetHeaders(header).
-		SetPayload(payload).
-		Build(version)
+		SetPayload(payload)
+
+	for _, opt := range opts {
+		opt(bldr)
+	}
+
+	return bldr.Build(version)
 }
