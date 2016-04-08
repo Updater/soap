@@ -25,6 +25,10 @@ type client struct {
 	// The HTTP client pool to be used by this implementation of the
 	// HTTPClientAdapter interface.
 	pool *bvhttp.ClientPool
+
+	username string
+
+	password string
 }
 
 // Do sends a request.
@@ -39,6 +43,9 @@ func (c *client) Do(req *Request) (*Response, error) {
 	}
 
 	httpReq.Header = req.Header
+	if len(c.username) > 0 {
+		httpReq.SetBasicAuth(c.username, c.password)
+	}
 
 	req.SentAt = time.Now()
 
@@ -77,6 +84,16 @@ type Option func(*client)
 func Timeout(timeout time.Duration) Option {
 	return func(c *client) {
 		c.timeout = timeout
+	}
+}
+
+// Timeout returns a configuration function to configure the timeout of a client.
+// The timeout parameter specifies a time limit for requests made by a client.
+// A Timeout of zero means no timeout.
+func BasicAuth(username string, password string) Option {
+	return func(c *client) {
+		c.username = username
+		c.password = password
 	}
 }
 
