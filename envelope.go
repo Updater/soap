@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"sort"
 )
 
 // Header models the header section of the SOAP Envelope.
@@ -38,10 +39,16 @@ func getHTTPRequest(env Envelope, action string) (*http.Request, error) {
 }
 
 func envelopeMarshalXML(env Envelope, xmlns map[string]string, e *xml.Encoder, start xml.StartElement) error {
-	for k, v := range xmlns {
+	var keys []string
+	for k := range xmlns {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+	for _, k := range keys {
 		start.Attr = append(
 			start.Attr,
-			xml.Attr{Name: xml.Name{Local: fmt.Sprintf("xmlns:%s", k)}, Value: v},
+			xml.Attr{Name: xml.Name{Local: fmt.Sprintf("xmlns:%s", k)}, Value: xmlns[k]},
 		)
 	}
 
