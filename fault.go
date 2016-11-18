@@ -109,3 +109,9 @@ type Text struct {
 type Reason struct {
 	Items []Text `xml:"Text"`
 }
+
+// FaultDetails2 represents the content of Body.Fault.Details() field.
+type FaultDetails2 struct {
+	Message       string `xml:"message"`
+	SOAPErrorCode string `xml:"soapErrorCode"`
+}
