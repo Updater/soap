@@ -79,6 +79,19 @@ type Envelope11 struct {
 	BodyElem   Body11  `xml:"Body"`
 }
 
+func (x Envelope11) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name = xml.Name{Local: "x:Envelope"}
+	return e.EncodeElement(struct {
+		XMLx       string  `xml:"xmlns:x,attr"`
+		HeaderElem *Header `xml:"x:Header,omitempty"`
+		BodyElem   Body11  `xml:"x:Body"`
+	}{
+		XMLx:       "http://schemas.xmlsoap.org/soap/envelope/",
+		HeaderElem: x.HeaderElem,
+		BodyElem:   x.BodyElem,
+	}, start)
+}
+
 // Header implements the Header method of the Envelope interface.
 func (e *Envelope11) Header() *Header {
 	return e.HeaderElem
@@ -102,13 +115,6 @@ func (e *Envelope11) setHeader(hdr *Header) {
 // version returns the SOAP version of the Envelope.
 func (e *Envelope11) version() string {
 	return V11
-}
-
-// MarshalXML sets the SOAP 1.1 namespace and calls the generic envelope XML marshaller.
-func (e *Envelope11) MarshalXML(enc *xml.Encoder, start xml.StartElement) error {
-	start.Name = xml.Name{Space: "http://schemas.xmlsoap.org/soap/envelope/", Local: "Envelope"}
-
-	return envelopeMarshalXML(e, e.Xmlns, enc, start)
 }
 
 // Envelope12 models an envelope following the SOAP 1.2 Envelope specs.
