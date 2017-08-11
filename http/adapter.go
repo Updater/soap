@@ -32,6 +32,7 @@ type Response struct {
 	Body       []byte
 	Request    *Request
 	ReceivedAt time.Time
+	StatusCode int
 }
 
 // ClientAdapter represents the behaviors that a HTTP Client adapter must satisfy.

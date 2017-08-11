@@ -30,6 +30,10 @@ type Response struct {
 	Env        Envelope
 	Request    *Request
 	ReceivedAt time.Time
+	URL        string // URL that sent the response.
+	Endpoint   string // An endpoint called by request.
+	Method     string // A HTTP method used to contact the endpoint.
+	StatusCode int    // HTTP status code received
 }
 
 // Client represents a SOAP client that will be used
@@ -52,7 +56,6 @@ func (c *Client) Do(req *Request) (*Response, error) {
 
 	httpReq := soap_http.NewRequest("POST", c.url, payload)
 	httpReq.Header = req.HTTPHeaders
-
 	httpClient := c.httpClient
 	if httpClient == nil {
 		httpClient = soap_http.NewClientAdapter()
@@ -74,6 +77,9 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		Env:        env,
 		Request:    req,
 		ReceivedAt: time.Now(),
+		URL:        c.url,
+		Method:     httpReq.Method,
+		StatusCode: httpRes.StatusCode,
 	}
 
 	return &resp, nil

@@ -37,7 +37,6 @@ func (bldr *EnvBuilder) Build(version string) (Envelope, error) {
 	if !isValidVersion(version) {
 		return nil, ErrInvalidVersion
 	}
-
 	bdy, err := xml.Marshal(bldr.payload)
 	if err != nil {
 		return nil, err
