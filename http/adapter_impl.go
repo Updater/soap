@@ -69,6 +69,7 @@ func (c *client) Do(req *Request) (*Response, error) {
 		Body:       buf.Bytes(),
 		Request:    req,
 		ReceivedAt: time.Now(),
+		StatusCode: httpRes.StatusCode,
 	}
 
 	return &resp, nil
