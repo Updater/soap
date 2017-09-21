@@ -34,6 +34,7 @@ type Response struct {
 	Endpoint   string // An endpoint called by request.
 	Method     string // A HTTP method used to contact the endpoint.
 	StatusCode int    // HTTP status code received
+	Payload    string // used when there is an error to strinify the body response
 }
 
 // Client represents a SOAP client that will be used
@@ -70,7 +71,14 @@ func (c *Client) Do(req *Request) (*Response, error) {
 
 	env, err := decodeEnvelope(req.Env.version(), httpRes.Body)
 	if err != nil {
-		return nil, err
+		return &Response{
+			Request:    req,
+			ReceivedAt: time.Now(),
+			URL:        c.url,
+			Method:     httpReq.Method,
+			StatusCode: httpRes.StatusCode,
+			Payload:    string(httpRes.Body),
+		}, err
 	}
 
 	resp := Response{
