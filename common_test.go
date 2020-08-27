@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Bridgevine/soap"
-	"github.com/Bridgevine/soap/ws"
+	"github.com/Updater/soap"
+	"github.com/Updater/soap/ws"
 )
 
 // These constants provide visual markers for test output.

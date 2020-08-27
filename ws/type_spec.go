@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"time"
 
-	bvxml "github.com/Bridgevine/xml"
+	bvxml "github.com/Updater/xml"
 )
 
 // Constants that represent the different password types.

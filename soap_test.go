@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Bridgevine/soap"
-	"github.com/Bridgevine/soap/ws"
-	"github.com/Bridgevine/xml"
+	"github.com/Updater/soap"
+	"github.com/Updater/soap/ws"
+	"github.com/Updater/xml"
 )
 
 // mockServer returns a pointer to a server to handle incomming requests.

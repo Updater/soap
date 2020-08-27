@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	soap_http "github.com/Bridgevine/soap/http"
+	soap_http "github.com/Updater/soap/http"
 )
 
 // Request represents a SOAP request.

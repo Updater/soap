@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	bvhttp "github.com/Bridgevine/http"
+	bvhttp "github.com/Updater/http"
 )
 
 // Errors that can be thrown.
