@@ -1,0 +1,4 @@
+github.com/Updater/http v0.0.0-20221013134513-ef9b8c49e9ab h1:/Y7ut+xHZYcP0lTwRsO08AEfP2v3XWq2QQTjf9qNA5o=
+github.com/Updater/http v0.0.0-20221013134513-ef9b8c49e9ab/go.mod h1:Ox4buM3RoecxClK0WTE2usdjyVPZgF/E26OY4aoZQCI=
+github.com/Updater/xml v0.0.0-20151201224750-f1186ae0d9f2 h1:7tqL8IoB6Nb4ofGBNrOL1YSYf/z+Q5x2bOdQbqRetd0=
+github.com/Updater/xml v0.0.0-20151201224750-f1186ae0d9f2/go.mod h1:siTzYmcOmSsJUv+ZCxnKWNS53qhOgA8oKQCqALOLoLQ=
